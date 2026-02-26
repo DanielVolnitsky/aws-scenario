@@ -74,7 +74,7 @@ Create `bootstrap/bootstrap.sh` to:
 - Create DynamoDB table for state locking
 - Output backend config for `main.tf`
 
-### Step 3: Terraform — Lambda Function
+### Step 3: Terraform — Lambda Function ✅
 **`lambda/handler.py`**:
 - Receives OTLP JSON metrics via API Gateway
 - Parses `resourceMetrics` → extracts `claude_code.token.usage` (or `claude_code.tokens.*`) metrics
@@ -89,7 +89,7 @@ Create `bootstrap/bootstrap.sh` to:
 - `cloudwatch:PutMetricData`
 - `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents`
 
-### Step 4: Terraform — API Gateway HTTP API
+### Step 4: Terraform — API Gateway REST API ✅
 - Create HTTP API (v2) — simpler and cheaper than REST API
 - Single `POST /v1/metrics` route → Lambda integration
 - API key authentication — auto-generate a key in Terraform, attach usage plan
