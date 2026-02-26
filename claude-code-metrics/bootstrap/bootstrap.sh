@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUCKET_PREFIX="claude-code-metrics-tfstate"
+BUCKET_NAME="claude-code-metrics-tfstate"
 REGION="${AWS_REGION:-us-east-1}"
-
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-BUCKET_NAME="${BUCKET_PREFIX}-${ACCOUNT_ID}"
 
 echo "Creating Terraform state bucket: ${BUCKET_NAME} in ${REGION}"
 

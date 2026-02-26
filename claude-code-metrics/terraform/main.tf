@@ -13,10 +13,9 @@ terraform {
 
   # Where Terraform saves its "memory" of what it created (the state file).
   # Without this, Terraform wouldn't know what resources already exist.
-  # The S3 bucket is created by bootstrap/bootstrap.sh — replace ACCOUNT_ID
-  # with your actual AWS account ID.
+  # The S3 bucket is created by bootstrap/bootstrap.sh.
   backend "s3" {
-    bucket = "claude-code-metrics-tfstate-ACCOUNT_ID"
+    bucket = "claude-code-metrics-tfstate"
     key    = "terraform.tfstate"
     region = "us-east-1"
   }
