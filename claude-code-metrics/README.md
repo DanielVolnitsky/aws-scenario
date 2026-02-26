@@ -71,6 +71,19 @@ terraform apply
 terraform destroy
 ```
 
+## Verifying the Bootstrap
+
+```bash
+# Check if the state bucket exists
+aws s3api head-bucket --bucket claude-code-metrics-tfstate-$(aws sts get-caller-identity --query Account --output text)
+
+# List objects in the bucket (empty until first terraform apply)
+aws s3 ls s3://claude-code-metrics-tfstate-$(aws sts get-caller-identity --query Account --output text)/
+
+# Check versioning is enabled
+aws s3api get-bucket-versioning --bucket claude-code-metrics-tfstate-$(aws sts get-caller-identity --query Account --output text)
+```
+
 ## Client Setup
 
 Copy `client/settings.json` to `~/.claude/settings.json`, replacing the placeholder values with the endpoint URL and API
