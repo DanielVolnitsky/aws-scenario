@@ -58,12 +58,16 @@ claude-code-metrics/
 cd bootstrap
 ./bootstrap.sh
 
-# 2. Deploy infrastructure
+# 2. Update the S3 backend bucket name in terraform/main.tf:
+#    Replace ACCOUNT_ID in the backend "s3" block with your AWS account ID
+#    (the bootstrap script prints the bucket name for you)
+
+# 3. Deploy infrastructure
 cd ../terraform
 terraform init
 terraform apply
 
-# 3. Tear down everything
+# 4. Tear down everything
 terraform destroy
 ```
 

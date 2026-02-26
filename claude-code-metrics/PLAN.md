@@ -46,7 +46,7 @@ Ensure Terraform can access your AWS account:
 
 This creates `~/.aws/credentials` which Terraform uses automatically (no extra config needed).
 
-### Step 1: Terraform Project Structure
+### Step 1: Terraform Project Structure ✅
 Create the directory layout:
 ```
 claude-code-metrics/
@@ -68,7 +68,7 @@ claude-code-metrics/
 └── README.md
 ```
 
-### Step 2: Bootstrap Script
+### Step 2: Bootstrap Script ✅
 Create `bootstrap/bootstrap.sh` to:
 - Create S3 bucket for Terraform state (with versioning)
 - Create DynamoDB table for state locking
