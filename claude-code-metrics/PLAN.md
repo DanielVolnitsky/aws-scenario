@@ -95,7 +95,7 @@ Create `bootstrap/bootstrap.sh` to:
 - API key authentication — auto-generate a key in Terraform, attach usage plan
 - Output the endpoint URL and API key
 
-### Step 5: Terraform — CloudWatch Dashboard
+### Step 5: Terraform — CloudWatch Dashboard ✅
 Dashboard named `ClaudeCodeMetrics` with metric widgets:
 1. **DAU** — unique users per day (number widget, based on `TokenUsage` metric unique `User` dimension count)
 2. **Daily Token Usage by User** — bar/table showing per-user daily token consumption
