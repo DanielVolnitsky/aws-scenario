@@ -14,16 +14,18 @@ TARGET_PATH = Path.home() / ".claude" / "settings.json"
 
 
 def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <API_GATEWAY_ENDPOINT>")
-        print("  e.g.: python install.py https://abc123.execute-api.us-east-1.amazonaws.com/prod")
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <EMAIL> <API_GATEWAY_ENDPOINT>")
+        print("  e.g.: python3 install.py user@example.com https://abc123.execute-api.us-east-1.amazonaws.com/prod")
         sys.exit(1)
 
-    endpoint = sys.argv[1]
+    email = sys.argv[1]
+    endpoint = sys.argv[2]
 
     template = json.loads(TEMPLATE_PATH.read_text())
     env_vars = template["env"]
     env_vars["OTEL_EXPORTER_OTLP_ENDPOINT"] = endpoint
+    env_vars["OTEL_RESOURCE_ATTRIBUTES"] = env_vars["OTEL_RESOURCE_ATTRIBUTES"].replace("<EMAIL>", email)
 
     if TARGET_PATH.exists():
         target = json.loads(TARGET_PATH.read_text())
