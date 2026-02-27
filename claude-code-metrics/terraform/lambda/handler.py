@@ -53,7 +53,7 @@ def handler(event, context):
                                 "MetricName": "TokenUsage",
                                 "Dimensions": [
                                     {"Name": "ServiceName", "Value": service_name},
-                                    {"Name": "User", "Value": _extract_user(dp_attrs)},
+                                    {"Name": "User", "Value": _extract_user(resource_attrs, dp_attrs)},
                                     {"Name": "TokenType", "Value": token_type},
                                 ],
                                 "Value": value,
@@ -75,7 +75,7 @@ def handler(event, context):
                                 "MetricName": "CostUsage",
                                 "Dimensions": [
                                     {"Name": "ServiceName", "Value": service_name},
-                                    {"Name": "User", "Value": _extract_user(dp_attrs)},
+                                    {"Name": "User", "Value": _extract_user(resource_attrs, dp_attrs)},
                                 ],
                                 "Value": value,
                                 "Unit": "None",
@@ -106,12 +106,12 @@ def _extract_value(data_point):
     return None
 
 
-def _extract_user(attributes):
-    for key in ("user.email", "user.account_uuid", "user.id"):
-        value = _extract_attribute(attributes, key)
+def _extract_user(resource_attrs, dp_attrs):
+    for attrs in (resource_attrs, dp_attrs):
+        value = _extract_attribute(attrs, "user.email")
         if value:
             return value
-    return "unknown"
+    raise ValueError("user.email not found in resource or datapoint attributes")
 
 
 def _extract_attribute(attributes, key):

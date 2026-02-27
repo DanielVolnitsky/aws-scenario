@@ -3,6 +3,8 @@ import base64
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
+import pytest
+
 import handler
 
 
@@ -15,6 +17,7 @@ def _make_event(payload, base64_encode=False):
 
 def _make_otlp_payload(user_attr_key="user.email",
                        user_attr_value="alice@example.com",
+                       resource_user_email=None,
                        token_type="input",
                        value_key="asInt",
                        value=150,
@@ -30,10 +33,14 @@ def _make_otlp_payload(user_attr_key="user.email",
     if time_unix_nano is not None:
         dp["timeUnixNano"] = time_unix_nano
 
+    resource_attrs = []
+    if resource_user_email:
+        resource_attrs.append({"key": "user.email", "value": {"stringValue": resource_user_email}})
+
     return {
         "resourceMetrics": [
             {
-                "resource": {"attributes": []},
+                "resource": {"attributes": resource_attrs},
                 "scopeMetrics": [
                     {
                         "metrics": [
@@ -199,19 +206,26 @@ class TestHandler:
         assert json.loads(resp["body"])["accepted"] == 0
         mock_cw.put_metric_data.assert_not_called()
 
-    def test_user_fallback_to_account_uuid(self, mock_cw):
-        event = _make_event(_make_otlp_payload(user_attr_key="user.account_uuid", user_attr_value="uuid-123"))
+    def test_user_email_from_resource_attrs(self, mock_cw):
+        event = _make_event(_make_otlp_payload(user_attr_key=None, resource_user_email="resource@example.com"))
         resp = handler.handler(event, None)
 
         dims = {d["Name"]: d["Value"] for d in mock_cw.put_metric_data.call_args[1]["MetricData"][0]["Dimensions"]}
-        assert dims["User"] == "uuid-123"
+        assert dims["User"] == "resource@example.com"
 
-    def test_user_fallback_to_unknown(self, mock_cw):
+    def test_user_email_resource_attrs_takes_priority(self, mock_cw):
+        event = _make_event(_make_otlp_payload(user_attr_key="user.email", user_attr_value="dp@example.com",
+                                               resource_user_email="resource@example.com"))
+        resp = handler.handler(event, None)
+
+        dims = {d["Name"]: d["Value"] for d in mock_cw.put_metric_data.call_args[1]["MetricData"][0]["Dimensions"]}
+        assert dims["User"] == "resource@example.com"
+
+    def test_missing_user_email_raises(self, mock_cw):
         event = _make_event(_make_otlp_payload(user_attr_key=None))
-        resp = handler.handler(event, None)
 
-        dims = {d["Name"]: d["Value"] for d in mock_cw.put_metric_data.call_args[1]["MetricData"][0]["Dimensions"]}
-        assert dims["User"] == "unknown"
+        with pytest.raises(ValueError, match="user.email not found"):
+            handler.handler(event, None)
 
     def test_timestamp_from_datapoint(self, mock_cw):
         event = _make_event(_make_otlp_payload(time_unix_nano="1700000000000000000"))
