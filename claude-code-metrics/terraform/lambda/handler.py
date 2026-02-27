@@ -29,15 +29,14 @@ def handler(event, context):
     metric_data = []
 
     for rm in payload.get("resourceMetrics", []):
-        user = _extract_user(rm.get("resource", {}))
-
         for sm in rm.get("scopeMetrics", []):
             for metric in sm.get("metrics", []):
                 if metric.get("name") != TOKEN_METRIC_NAME:
                     continue
 
                 for dp in metric.get("sum", {}).get("dataPoints", []):
-                    token_type = _extract_attribute(dp.get("attributes", []), "type")
+                    dp_attrs = dp.get("attributes", [])
+                    token_type = _extract_attribute(dp_attrs, "type")
                     if not token_type:
                         continue
 
@@ -50,6 +49,8 @@ def handler(event, context):
 
                     if value <= 0:
                         continue
+
+                    user = _extract_user(dp_attrs)
 
                     metric_data.append(
                         {
@@ -79,10 +80,9 @@ def handler(event, context):
     }
 
 
-def _extract_user(resource):
-    attrs = resource.get("attributes", [])
+def _extract_user(attributes):
     for key in ("user.email", "user.account_uuid", "user.id"):
-        value = _extract_attribute(attrs, key)
+        value = _extract_attribute(attributes, key)
         if value:
             return value
     return "unknown"

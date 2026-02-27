@@ -19,8 +19,12 @@ def _make_otlp_payload(user_attr_key="user.email",
                        value_key="asInt",
                        value=150,
                        time_unix_nano="1700000000000000000"):
+    dp_attrs = [{"key": "type", "value": {"stringValue": token_type}}]
+    if user_attr_key:
+        dp_attrs.append({"key": user_attr_key, "value": {"stringValue": user_attr_value}})
+
     dp = {
-        "attributes": [{"key": "type", "value": {"stringValue": token_type}}],
+        "attributes": dp_attrs,
         value_key: value,
     }
     if time_unix_nano is not None:
@@ -29,11 +33,7 @@ def _make_otlp_payload(user_attr_key="user.email",
     return {
         "resourceMetrics": [
             {
-                "resource": {
-                    "attributes": [
-                        {"key": user_attr_key, "value": {"stringValue": user_attr_value}}
-                    ]
-                },
+                "resource": {"attributes": []},
                 "scopeMetrics": [
                     {
                         "metrics": [
@@ -55,26 +55,80 @@ def _make_otlp_payload(user_attr_key="user.email",
 @patch.object(handler, "cloudwatch")
 class TestHandler:
     def test_valid_metric(self, mock_cw):
-        event = _make_event(_make_otlp_payload())
+        common_dp_attrs = [
+            {"key": "user.id", "value": {"stringValue": "eda185f0a30fdf73d4b9e74165fe5a6a73020763bb624e0f47cb4832d5e670d3"}},
+            {"key": "session.id", "value": {"stringValue": "e0c439d5-7164-41b6-8ec2-6136b74164b1"}},
+            {"key": "organization.id", "value": {"stringValue": "6ce36d68-e988-41a8-9f73-9c843796fa0d"}},
+            {"key": "user.email", "value": {"stringValue": "user@gmail.com"}},
+            {"key": "user.account_uuid", "value": {"stringValue": "adbb6321-5476-430e-a0e2-e52a8fc4180f"}},
+            {"key": "terminal.type", "value": {"stringValue": "pycharm"}},
+            {"key": "model", "value": {"stringValue": "claude-haiku-4-5-20251001"}},
+        ]
+        payload = {
+            "resourceMetrics": [{
+                "resource": {
+                    "attributes": [
+                        {"key": "service.name", "value": {"stringValue": "claude-code"}},
+                        {"key": "service.version", "value": {"stringValue": "2.1.34"}},
+                    ],
+                },
+                "scopeMetrics": [{
+                    "metrics": [
+                        {
+                            "name": "claude_code.cost.usage",
+                            "sum": {"dataPoints": [{
+                                "attributes": common_dp_attrs,
+                                "asDouble": 0.000407,
+                                "timeUnixNano": "1772186899885000000",
+                            }]},
+                        },
+                        {
+                            "name": "claude_code.token.usage",
+                            "sum": {"dataPoints": [
+                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "input"}}],
+                                 "asDouble": 287, "timeUnixNano": "1772186899885000000"},
+                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "output"}}],
+                                 "asDouble": 24, "timeUnixNano": "1772186899885000000"},
+                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "cacheRead"}}],
+                                 "asDouble": 0, "timeUnixNano": "1772186899885000000"},
+                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "cacheCreation"}}],
+                                 "asDouble": 0, "timeUnixNano": "1772186899885000000"},
+                            ]},
+                        },
+                    ],
+                }],
+            }]
+        }
+        event = _make_event(payload)
         resp = handler.handler(event, None)
 
         assert resp["statusCode"] == 200
-        body = json.loads(resp["body"])
-        assert body["accepted"] == 1
+        assert json.loads(resp["body"])["accepted"] == 2
 
+        expected_ts = datetime.fromtimestamp(1772186899885000000 / 1e9, tz=timezone.utc)
         mock_cw.put_metric_data.assert_called_once_with(
             Namespace="ClaudeCode/Metrics",
             MetricData=[
                 {
                     "MetricName": "TokenUsage",
                     "Dimensions": [
-                        {"Name": "User", "Value": "alice@example.com"},
+                        {"Name": "User", "Value": "user@gmail.com"},
                         {"Name": "TokenType", "Value": "input"},
                     ],
-                    "Value": 150,
+                    "Value": 287,
                     "Unit": "Count",
-                    "Timestamp": datetime(2023, 11, 14, 22, 13, 20, tzinfo=timezone.utc),
-                }
+                    "Timestamp": expected_ts,
+                },
+                {
+                    "MetricName": "TokenUsage",
+                    "Dimensions": [
+                        {"Name": "User", "Value": "user@gmail.com"},
+                        {"Name": "TokenType", "Value": "output"},
+                    ],
+                    "Value": 24,
+                    "Unit": "Count",
+                    "Timestamp": expected_ts,
+                },
             ],
         )
 
@@ -141,9 +195,7 @@ class TestHandler:
         assert dims["User"] == "uuid-123"
 
     def test_user_fallback_to_unknown(self, mock_cw):
-        payload = _make_otlp_payload()
-        payload["resourceMetrics"][0]["resource"]["attributes"] = []
-        event = _make_event(payload)
+        event = _make_event(_make_otlp_payload(user_attr_key=None))
         resp = handler.handler(event, None)
 
         dims = {d["Name"]: d["Value"] for d in mock_cw.put_metric_data.call_args[1]["MetricData"][0]["Dimensions"]}
@@ -172,6 +224,30 @@ class TestHandler:
 
         assert json.loads(resp["body"])["accepted"] == 2500
         assert mock_cw.put_metric_data.call_count == 3
+
+    def test_cache_read_tokens(self, mock_cw):
+        event = _make_event(_make_otlp_payload(token_type="cacheRead", value=500))
+        resp = handler.handler(event, None)
+
+        assert json.loads(resp["body"])["accepted"] == 1
+        md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
+        assert md["Dimensions"] == [
+            {"Name": "User", "Value": "alice@example.com"},
+            {"Name": "TokenType", "Value": "cacheRead"},
+        ]
+        assert md["Value"] == 500
+
+    def test_cache_creation_tokens(self, mock_cw):
+        event = _make_event(_make_otlp_payload(token_type="cacheCreation", value=1024))
+        resp = handler.handler(event, None)
+
+        assert json.loads(resp["body"])["accepted"] == 1
+        md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
+        assert md["Dimensions"] == [
+            {"Name": "User", "Value": "alice@example.com"},
+            {"Name": "TokenType", "Value": "cacheCreation"},
+        ]
+        assert md["Value"] == 1024
 
     def test_empty_resource_metrics(self, mock_cw):
         event = _make_event({"resourceMetrics": []})
