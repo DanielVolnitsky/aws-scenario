@@ -112,6 +112,7 @@ class TestHandler:
                 {
                     "MetricName": "CostUsage",
                     "Dimensions": [
+                        {"Name": "ServiceName", "Value": "claude-code"},
                         {"Name": "User", "Value": "user@gmail.com"},
                     ],
                     "Value": 0.000407,
@@ -121,6 +122,7 @@ class TestHandler:
                 {
                     "MetricName": "TokenUsage",
                     "Dimensions": [
+                        {"Name": "ServiceName", "Value": "claude-code"},
                         {"Name": "User", "Value": "user@gmail.com"},
                         {"Name": "TokenType", "Value": "input"},
                     ],
@@ -131,6 +133,7 @@ class TestHandler:
                 {
                     "MetricName": "TokenUsage",
                     "Dimensions": [
+                        {"Name": "ServiceName", "Value": "claude-code"},
                         {"Name": "User", "Value": "user@gmail.com"},
                         {"Name": "TokenType", "Value": "output"},
                     ],
@@ -241,6 +244,7 @@ class TestHandler:
         assert json.loads(resp["body"])["accepted"] == 1
         md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
         assert md["Dimensions"] == [
+            {"Name": "ServiceName", "Value": "unknown"},
             {"Name": "User", "Value": "alice@example.com"},
             {"Name": "TokenType", "Value": "cacheRead"},
         ]
@@ -253,6 +257,7 @@ class TestHandler:
         assert json.loads(resp["body"])["accepted"] == 1
         md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
         assert md["Dimensions"] == [
+            {"Name": "ServiceName", "Value": "unknown"},
             {"Name": "User", "Value": "alice@example.com"},
             {"Name": "TokenType", "Value": "cacheCreation"},
         ]

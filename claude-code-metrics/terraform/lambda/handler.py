@@ -30,6 +30,9 @@ def handler(event, context):
     metric_data = []
 
     for rm in payload.get("resourceMetrics", []):
+        resource_attrs = rm.get("resource", {}).get("attributes", [])
+        service_name = _extract_attribute(resource_attrs, "service.name") or "unknown"
+
         for sm in rm.get("scopeMetrics", []):
             for metric in sm.get("metrics", []):
                 metric_name = metric.get("name")
@@ -49,6 +52,7 @@ def handler(event, context):
                             {
                                 "MetricName": "TokenUsage",
                                 "Dimensions": [
+                                    {"Name": "ServiceName", "Value": service_name},
                                     {"Name": "User", "Value": _extract_user(dp_attrs)},
                                     {"Name": "TokenType", "Value": token_type},
                                 ],
@@ -70,6 +74,7 @@ def handler(event, context):
                             {
                                 "MetricName": "CostUsage",
                                 "Dimensions": [
+                                    {"Name": "ServiceName", "Value": service_name},
                                     {"Name": "User", "Value": _extract_user(dp_attrs)},
                                 ],
                                 "Value": value,
