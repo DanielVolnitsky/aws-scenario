@@ -101,7 +101,7 @@ Dashboard named `ClaudeCodeMetrics` with metric widgets:
 2. **Daily Token Usage by User** — bar/table showing per-user daily token consumption
 3. **Total Daily Tokens** — line graph of aggregate input + output tokens over time
 
-### Step 6: Claude Code Client Configuration
+### Step 6: Claude Code Client Configuration ✅
 Create `client/settings.json` template:
 ```json
 {
@@ -110,6 +110,7 @@ Create `client/settings.json` template:
     "OTEL_METRICS_EXPORTER": "otlp",
     "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "<API_GATEWAY_ENDPOINT>",
+    "OTEL_METRIC_EXPORT_INTERVAL": "60000",
     "OTEL_EXPORTER_OTLP_HEADERS": "x-api-key=<API_KEY>"
   }
 }
