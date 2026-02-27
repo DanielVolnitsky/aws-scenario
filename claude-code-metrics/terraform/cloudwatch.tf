@@ -14,12 +14,29 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 24
         height = 6
         properties = {
-          title   = "Daily Token Usage by User"
-          view    = "bar"
-          region  = var.aws_region
-          period  = 86400
+          title  = "Token Usage"
+          view   = "bar"
+          region = var.aws_region
+          period = 86400
           metrics = [
             [{ expression = "SEARCH('{ClaudeCode/Metrics,User,TokenType} MetricName=\"TokenUsage\"', 'Sum', 86400)", id = "e1" }]
+          ]
+        }
+      },
+      # Per-user cost breakdown — bar chart with one bar per user.
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 24
+        height = 6
+        properties = {
+          title  = "Cost Usage"
+          view   = "bar"
+          region = var.aws_region
+          period = 86400
+          metrics = [
+            [{ expression = "SEARCH('{ClaudeCode/Metrics,User} MetricName=\"CostUsage\"', 'Sum', 86400)", id = "e2" }]
           ]
         }
       }

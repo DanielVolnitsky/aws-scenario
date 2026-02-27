@@ -11,6 +11,7 @@ cloudwatch = boto3.client("cloudwatch")
 
 NAMESPACE = "ClaudeCode/Metrics"
 TOKEN_METRIC_NAME = "claude_code.token.usage"
+COST_METRIC_NAME = "claude_code.cost.usage"
 
 
 def handler(event, context):
@@ -31,39 +32,51 @@ def handler(event, context):
     for rm in payload.get("resourceMetrics", []):
         for sm in rm.get("scopeMetrics", []):
             for metric in sm.get("metrics", []):
-                if metric.get("name") != TOKEN_METRIC_NAME:
-                    continue
+                metric_name = metric.get("name")
 
-                for dp in metric.get("sum", {}).get("dataPoints", []):
-                    dp_attrs = dp.get("attributes", [])
-                    token_type = _extract_attribute(dp_attrs, "type")
-                    if not token_type:
-                        continue
+                if metric_name == TOKEN_METRIC_NAME:
+                    for dp in metric.get("sum", {}).get("dataPoints", []):
+                        dp_attrs = dp.get("attributes", [])
+                        token_type = _extract_attribute(dp_attrs, "type")
+                        if not token_type:
+                            continue
 
-                    if "asInt" in dp:
-                        value = int(dp["asInt"])
-                    elif "asDouble" in dp:
-                        value = dp["asDouble"]
-                    else:
-                        continue
+                        value = _extract_value(dp)
+                        if value is None or value <= 0:
+                            continue
 
-                    if value <= 0:
-                        continue
+                        metric_data.append(
+                            {
+                                "MetricName": "TokenUsage",
+                                "Dimensions": [
+                                    {"Name": "User", "Value": _extract_user(dp_attrs)},
+                                    {"Name": "TokenType", "Value": token_type},
+                                ],
+                                "Value": value,
+                                "Unit": "Count",
+                                "Timestamp": _extract_timestamp(dp),
+                            }
+                        )
 
-                    user = _extract_user(dp_attrs)
+                elif metric_name == COST_METRIC_NAME:
+                    for dp in metric.get("sum", {}).get("dataPoints", []):
+                        dp_attrs = dp.get("attributes", [])
 
-                    metric_data.append(
-                        {
-                            "MetricName": "TokenUsage",
-                            "Dimensions": [
-                                {"Name": "User", "Value": user},
-                                {"Name": "TokenType", "Value": token_type},
-                            ],
-                            "Value": value,
-                            "Unit": "Count",
-                            "Timestamp": _extract_timestamp(dp),
-                        }
-                    )
+                        value = _extract_value(dp)
+                        if value is None or value <= 0:
+                            continue
+
+                        metric_data.append(
+                            {
+                                "MetricName": "CostUsage",
+                                "Dimensions": [
+                                    {"Name": "User", "Value": _extract_user(dp_attrs)},
+                                ],
+                                "Value": value,
+                                "Unit": "None",
+                                "Timestamp": _extract_timestamp(dp),
+                            }
+                        )
 
     if metric_data:
         for md in metric_data:
@@ -78,6 +91,14 @@ def handler(event, context):
         "statusCode": 200,
         "body": json.dumps({"accepted": len(metric_data)}),
     }
+
+
+def _extract_value(data_point):
+    if "asInt" in data_point:
+        return int(data_point["asInt"])
+    if "asDouble" in data_point:
+        return data_point["asDouble"]
+    return None
 
 
 def _extract_user(attributes):

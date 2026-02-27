@@ -103,12 +103,21 @@ class TestHandler:
         resp = handler.handler(event, None)
 
         assert resp["statusCode"] == 200
-        assert json.loads(resp["body"])["accepted"] == 2
+        assert json.loads(resp["body"])["accepted"] == 3
 
         expected_ts = datetime.fromtimestamp(1772186899885000000 / 1e9, tz=timezone.utc)
         mock_cw.put_metric_data.assert_called_once_with(
             Namespace="ClaudeCode/Metrics",
             MetricData=[
+                {
+                    "MetricName": "CostUsage",
+                    "Dimensions": [
+                        {"Name": "User", "Value": "user@gmail.com"},
+                    ],
+                    "Value": 0.000407,
+                    "Unit": "None",
+                    "Timestamp": expected_ts,
+                },
                 {
                     "MetricName": "TokenUsage",
                     "Dimensions": [
