@@ -1,8 +1,8 @@
-# CloudWatch Dashboard showing daily token usage metrics from Claude Code.
+# CloudWatch Dashboard showing daily usage metrics from agentic coding tools.
 # Uses SEARCH expressions to dynamically discover all users without hardcoding.
 
 resource "aws_cloudwatch_dashboard" "main" {
-  dashboard_name = "ClaudeCodeMetrics"
+  dashboard_name = "AgenticToolMetrics"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -19,7 +19,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           period = 86400
           metrics = [
-            [{ expression = "SEARCH('{ClaudeCode/Metrics,User,TokenType} MetricName=\"TokenUsage\"', 'Sum', 86400)", id = "e1" }]
+            [{ expression = "SEARCH('{AgenticToolMetrics,ServiceName,User,TokenType} MetricName=\"TokenUsage\"', 'Sum', 86400)", id = "e1" }]
           ]
         }
       },
@@ -36,7 +36,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           period = 86400
           metrics = [
-            [{ expression = "SEARCH('{ClaudeCode/Metrics,User} MetricName=\"CostUsage\"', 'Sum', 86400)", id = "e2" }]
+            [{ expression = "SEARCH('{AgenticToolMetrics,ServiceName,User} MetricName=\"CostUsage\"', 'Sum', 86400)", id = "e2" }]
           ]
         }
       }

@@ -9,7 +9,7 @@ logger.setLevel(logging.INFO)
 
 cloudwatch = boto3.client("cloudwatch")
 
-NAMESPACE = "ClaudeCode/Metrics"
+NAMESPACE = "AgenticToolMetrics"
 TOKEN_METRIC_NAME = "claude_code.token.usage"
 COST_METRIC_NAME = "claude_code.cost.usage"
 

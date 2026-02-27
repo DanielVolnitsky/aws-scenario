@@ -107,7 +107,7 @@ class TestHandler:
 
         expected_ts = datetime.fromtimestamp(1772186899885000000 / 1e9, tz=timezone.utc)
         mock_cw.put_metric_data.assert_called_once_with(
-            Namespace="ClaudeCode/Metrics",
+            Namespace="AgenticToolMetrics",
             MetricData=[
                 {
                     "MetricName": "CostUsage",
