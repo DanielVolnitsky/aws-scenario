@@ -70,12 +70,14 @@ def handler(event, context):
                         if value is None or value <= 0:
                             continue
 
+                        model = _extract_attribute(dp_attrs, "model") or "unknown"
                         metric_data.append(
                             {
                                 "MetricName": "CostUsage",
                                 "Dimensions": [
                                     {"Name": "ServiceName", "Value": service_name},
                                     {"Name": "User", "Value": _extract_user(resource_attrs, dp_attrs)},
+                                    {"Name": "Model", "Value": model},
                                 ],
                                 "Value": value,
                                 "Unit": "None",

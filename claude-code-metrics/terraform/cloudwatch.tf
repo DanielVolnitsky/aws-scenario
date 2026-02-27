@@ -36,7 +36,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           region = var.aws_region
           period = 86400
           metrics = [
-            [{ expression = "SEARCH('{AgenticToolMetrics,ServiceName,User} MetricName=\"CostUsage\"', 'Sum', 86400)", id = "e2" }]
+            [{ expression = "SEARCH('{AgenticToolMetrics,ServiceName,User,Model} MetricName=\"CostUsage\"', 'Sum', 86400)", id = "e2" }]
           ]
         }
       }

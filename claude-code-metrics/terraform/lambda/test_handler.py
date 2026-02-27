@@ -121,6 +121,7 @@ class TestHandler:
                     "Dimensions": [
                         {"Name": "ServiceName", "Value": "claude-code"},
                         {"Name": "User", "Value": "user@gmail.com"},
+                        {"Name": "Model", "Value": "claude-haiku-4-5-20251001"},
                     ],
                     "Value": 0.000407,
                     "Unit": "None",
