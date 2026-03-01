@@ -10,7 +10,6 @@ logger.setLevel(logging.INFO)
 cloudwatch = boto3.client("cloudwatch")
 
 NAMESPACE = "AgenticToolMetrics"
-TOKEN_METRIC_NAME = "claude_code.token.usage"
 COST_METRIC_NAME = "claude_code.cost.usage"
 
 
@@ -37,32 +36,7 @@ def handler(event, context):
             for metric in sm.get("metrics", []):
                 metric_name = metric.get("name")
 
-                if metric_name == TOKEN_METRIC_NAME:
-                    for dp in metric.get("sum", {}).get("dataPoints", []):
-                        dp_attrs = dp.get("attributes", [])
-                        token_type = _extract_attribute(dp_attrs, "type")
-                        if not token_type:
-                            continue
-
-                        value = _extract_value(dp)
-                        if value is None or value <= 0:
-                            continue
-
-                        metric_data.append(
-                            {
-                                "MetricName": "TokenUsage",
-                                "Dimensions": [
-                                    {"Name": "ServiceName", "Value": service_name},
-                                    {"Name": "User", "Value": _extract_user(resource_attrs, dp_attrs)},
-                                    {"Name": "TokenType", "Value": token_type},
-                                ],
-                                "Value": value,
-                                "Unit": "Count",
-                                "Timestamp": _extract_timestamp(dp),
-                            }
-                        )
-
-                elif metric_name == COST_METRIC_NAME:
+                if metric_name == COST_METRIC_NAME:
                     for dp in metric.get("sum", {}).get("dataPoints", []):
                         dp_attrs = dp.get("attributes", [])
 

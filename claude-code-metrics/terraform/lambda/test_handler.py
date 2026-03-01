@@ -18,11 +18,11 @@ def _make_event(payload, base64_encode=False):
 def _make_otlp_payload(user_attr_key="user.email",
                        user_attr_value="alice@example.com",
                        resource_user_email=None,
-                       token_type="input",
-                       value_key="asInt",
-                       value=150,
+                       model="claude-haiku-4-5-20251001",
+                       value_key="asDouble",
+                       value=0.005,
                        time_unix_nano="1700000000000000000"):
-    dp_attrs = [{"key": "type", "value": {"stringValue": token_type}}]
+    dp_attrs = [{"key": "model", "value": {"stringValue": model}}]
     if user_attr_key:
         dp_attrs.append({"key": user_attr_key, "value": {"stringValue": user_attr_value}})
 
@@ -45,7 +45,7 @@ def _make_otlp_payload(user_attr_key="user.email",
                     {
                         "metrics": [
                             {
-                                "name": "claude_code.token.usage",
+                                "name": "claude_code.cost.usage",
                                 "sum": {"dataPoints": [dp]},
                             }
                         ]
@@ -89,19 +89,6 @@ class TestHandler:
                                 "timeUnixNano": "1772186899885000000",
                             }]},
                         },
-                        {
-                            "name": "claude_code.token.usage",
-                            "sum": {"dataPoints": [
-                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "input"}}],
-                                 "asDouble": 287, "timeUnixNano": "1772186899885000000"},
-                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "output"}}],
-                                 "asDouble": 24, "timeUnixNano": "1772186899885000000"},
-                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "cacheRead"}}],
-                                 "asDouble": 0, "timeUnixNano": "1772186899885000000"},
-                                {"attributes": common_dp_attrs + [{"key": "type", "value": {"stringValue": "cacheCreation"}}],
-                                 "asDouble": 0, "timeUnixNano": "1772186899885000000"},
-                            ]},
-                        },
                     ],
                 }],
             }]
@@ -110,7 +97,7 @@ class TestHandler:
         resp = handler.handler(event, None)
 
         assert resp["statusCode"] == 200
-        assert json.loads(resp["body"])["accepted"] == 3
+        assert json.loads(resp["body"])["accepted"] == 1
 
         expected_ts = datetime.fromtimestamp(1772186899885000000 / 1e9, tz=timezone.utc)
         mock_cw.put_metric_data.assert_called_once_with(
@@ -125,28 +112,6 @@ class TestHandler:
                     ],
                     "Value": 0.000407,
                     "Unit": "None",
-                    "Timestamp": expected_ts,
-                },
-                {
-                    "MetricName": "TokenUsage",
-                    "Dimensions": [
-                        {"Name": "ServiceName", "Value": "claude-code"},
-                        {"Name": "User", "Value": "user@gmail.com"},
-                        {"Name": "TokenType", "Value": "input"},
-                    ],
-                    "Value": 287,
-                    "Unit": "Count",
-                    "Timestamp": expected_ts,
-                },
-                {
-                    "MetricName": "TokenUsage",
-                    "Dimensions": [
-                        {"Name": "ServiceName", "Value": "claude-code"},
-                        {"Name": "User", "Value": "user@gmail.com"},
-                        {"Name": "TokenType", "Value": "output"},
-                    ],
-                    "Value": 24,
-                    "Unit": "Count",
                     "Timestamp": expected_ts,
                 },
             ],
@@ -167,7 +132,7 @@ class TestHandler:
         assert resp["statusCode"] == 400
         mock_cw.put_metric_data.assert_not_called()
 
-    def test_ignores_non_token_metric(self, mock_cw):
+    def test_ignores_unknown_metric(self, mock_cw):
         payload = _make_otlp_payload()
         payload["resourceMetrics"][0]["scopeMetrics"][0]["metrics"][0]["name"] = "other.metric"
         event = _make_event(payload)
@@ -190,22 +155,13 @@ class TestHandler:
         assert json.loads(resp["body"])["accepted"] == 0
         mock_cw.put_metric_data.assert_not_called()
 
-    def test_as_double_value(self, mock_cw):
-        event = _make_event(_make_otlp_payload(value_key="asDouble", value=42.5))
+    def test_as_int_value(self, mock_cw):
+        event = _make_event(_make_otlp_payload(value_key="asInt", value=42))
         resp = handler.handler(event, None)
 
         assert json.loads(resp["body"])["accepted"] == 1
         md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
-        assert md["Value"] == 42.5
-
-    def test_missing_type_attribute_skips_datapoint(self, mock_cw):
-        payload = _make_otlp_payload()
-        payload["resourceMetrics"][0]["scopeMetrics"][0]["metrics"][0]["sum"]["dataPoints"][0]["attributes"] = []
-        event = _make_event(payload)
-        resp = handler.handler(event, None)
-
-        assert json.loads(resp["body"])["accepted"] == 0
-        mock_cw.put_metric_data.assert_not_called()
+        assert md["Value"] == 42
 
     def test_user_email_from_resource_attrs(self, mock_cw):
         event = _make_event(_make_otlp_payload(user_attr_key=None, resource_user_email="resource@example.com"))
@@ -251,32 +207,6 @@ class TestHandler:
 
         assert json.loads(resp["body"])["accepted"] == 2500
         assert mock_cw.put_metric_data.call_count == 3
-
-    def test_cache_read_tokens(self, mock_cw):
-        event = _make_event(_make_otlp_payload(token_type="cacheRead", value=500))
-        resp = handler.handler(event, None)
-
-        assert json.loads(resp["body"])["accepted"] == 1
-        md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
-        assert md["Dimensions"] == [
-            {"Name": "ServiceName", "Value": "unknown"},
-            {"Name": "User", "Value": "alice@example.com"},
-            {"Name": "TokenType", "Value": "cacheRead"},
-        ]
-        assert md["Value"] == 500
-
-    def test_cache_creation_tokens(self, mock_cw):
-        event = _make_event(_make_otlp_payload(token_type="cacheCreation", value=1024))
-        resp = handler.handler(event, None)
-
-        assert json.loads(resp["body"])["accepted"] == 1
-        md = mock_cw.put_metric_data.call_args[1]["MetricData"][0]
-        assert md["Dimensions"] == [
-            {"Name": "ServiceName", "Value": "unknown"},
-            {"Name": "User", "Value": "alice@example.com"},
-            {"Name": "TokenType", "Value": "cacheCreation"},
-        ]
-        assert md["Value"] == 1024
 
     def test_empty_resource_metrics(self, mock_cw):
         event = _make_event({"resourceMetrics": []})
