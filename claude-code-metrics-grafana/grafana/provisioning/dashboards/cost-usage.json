@@ -105,8 +105,8 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (user_email, model) (claude_code_cost_usage_USD_total)",
-          "legendFormat": "{{user_email}} / {{model}}",
+          "expr": "sum by (user_email, session_id) (claude_code_cost_usage_USD_total)",
+          "legendFormat": "{{user_email}} / {{session_id}}",
           "range": true,
           "refId": "A"
         }
