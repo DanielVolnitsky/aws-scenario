@@ -6,13 +6,14 @@ services:
     ports:
       - "4318:4318" # OTLP HTTP receiver (Claude Code pushes here)
 
-  prometheus:
-    image: prom/prometheus:v3.2.1
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+      - victoriametrics-data:/storage
     ports:
-      - "9090:9090"
+      - "8428:8428"
+    command:
+      - --storageDataPath=/storage
     depends_on:
       - otel-collector
 
@@ -28,8 +29,8 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
     depends_on:
-      - prometheus
+      - victoriametrics
 
 volumes:
-  prometheus-data:
+  victoriametrics-data:
   grafana-data:
