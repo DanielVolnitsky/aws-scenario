@@ -3,9 +3,15 @@ receivers:
     protocols:
       http:
         endpoint: 0.0.0.0:4318
+
+processors:
+  deltatocumulative:
+    max_stale: 30m
+
 exporters:
-  prometheus:
-    endpoint: 0.0.0.0:8889
+  prometheusremotewrite:
+    endpoint: http://victoriametrics:8428/api/v1/write
+    send_metadata: true
     resource_to_telemetry_conversion:
       enabled: true
   debug:
@@ -19,5 +25,6 @@ service:
       level: debug
   pipelines:
     metrics:
-      receivers: [ otlp ]
-      exporters: [ prometheus, debug ]
+      receivers: [otlp]
+      processors: [deltatocumulative]
+      exporters: [prometheusremotewrite, debug]
