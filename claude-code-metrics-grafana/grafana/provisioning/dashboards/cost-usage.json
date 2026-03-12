@@ -105,7 +105,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (user_email, session_id) (claude_code_cost_usage_USD_total)",
+          "expr": "sum by (session_id, user_email) (increase(claude_code_cost_usage_USD_total[$__rate_interval]))",
           "legendFormat": "{{user_email}} / {{session_id}}",
           "range": true,
           "refId": "A"
@@ -207,7 +207,7 @@
               "datasource": {
                 "type": "prometheus"
               },
-              "expr": "sum by (user_email) (claude_code_cost_usage_USD_total)",
+              "expr": "sum by (user_email) (last_over_time((sum by (user_email, session_id) (claude_code_cost_usage_USD_total))[$__range:1m]))",
               "instant": true,
               "legendFormat": "{{user_email}}",
               "refId": "A"
@@ -299,7 +299,7 @@
               "datasource": {
                 "type": "prometheus"
               },
-              "expr": "bottomk(5, sum by (user_email) (claude_code_cost_usage_USD_total))",
+              "expr": "bottomk(5, sum by (user_email) (last_over_time((sum by (user_email, session_id) (claude_code_cost_usage_USD_total))[$__range:1m])))",
               "instant": true,
               "legendFormat": "{{user_email}}",
               "refId": "A"
@@ -391,7 +391,7 @@
               "datasource": {
                 "type": "prometheus"
               },
-              "expr": "topk(5, sum by (user_email) (claude_code_cost_usage_USD_total))",
+              "expr": "topk(5, sum by (user_email) (last_over_time((sum by (user_email, session_id) (claude_code_cost_usage_USD_total))[$__range:1m])))",
               "instant": true,
               "legendFormat": "{{user_email}}",
               "refId": "A"
@@ -482,9 +482,9 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (session_id) (claude_code_cost_usage_USD_total)",
+          "expr": "sum by (session_id, user_email) (last_over_time(claude_code_cost_usage_USD_total[$__range:1m]))",
           "instant": true,
-          "legendFormat": "{{session_id}}",
+          "legendFormat": "{{session_id}} / {{user_email}}",
           "refId": "A"
         }
       ],
