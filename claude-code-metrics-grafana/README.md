@@ -4,6 +4,35 @@ Alternative to the AWS CloudWatch solution.
 
 ## Architecture
 
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Developer Machines                                                                          │
+│   Claude Code  ──OTLP/HTTP :4318──►                                                        │
+└────────────────────────────────────┼────────────────────────────────────────────────────────┘
+                                     │
+                              ALB Ingress (AWS)
+                                     │
+┌────────────────────────────────────▼────────────────────────────────────────────────────────┐
+│ k8s / EKS                                                                                   │
+│                                                                                             │
+│  OTel Collector          VictoriaMetrics          Grafana                                   │
+│  (delta→cumulative)  ──► (time-series store)  ──► (real-time ops dashboard)                 │
+│                                   │                                                         │
+│                                   │ HTTP query API                                          │
+│                                   ▼                                                         │
+│                          Daily CronJob / Jenkins Job                                        │
+│                          (e.g. 23:55 UTC — aggregate prior day)                                  │
+└───────────────────────────────────┼─────────────────────────────────────────────────────────┘
+                                    │ S3 PutObject · dated Parquet
+┌───────────────────────────────────▼─────────────────────────────────────────────────────────┐
+│ AWS                                                                                         │
+│                                                                                             │
+│  AI Usage API  ──existing ETL──►  S3  ──►  Athena / Glue  ──►  QuickSight                  │
+│                                   ▲         (daily business & reconciliation view)          │
+│                       ────────────┘                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## Architecture Alternatives
 
 Three options were evaluated for combining real-time Claude Code operational metrics with daily business reporting alongside other AI usage data.
